@@ -59,6 +59,7 @@ app.use((req, res, next) => {
   res.locals.errorMessage = req.flash('error');
   res.locals.infoMessage = req.flash('info');
   res.locals.warningMessage = req.flash('warning');
+  res.setHeader('Content-Security-Policy',"base-uri 'self';block-all-mixed-content;font-src 'self' https: data:;frame-ancestors 'self';object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests")
   next();
 });
 
