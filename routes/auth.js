@@ -18,6 +18,8 @@ router.post('/signup', authController.postSignup);
 
 router.post('/reset', authController.postReset);
 
+router.post('/new-password', authController.postNewPassword);
+
 router.post('/logout', authController.postLogout);
 
 module.exports = router;

@@ -79,40 +79,43 @@ exports.postSignup = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
   const confirmPassword = req.body.confirmPassword;
-  User.findOne({ 'email': email }).then(userDoc => {
-    if (userDoc) {
-      req.flash('info','Email Exists');
-      return res.redirect('/signup');
-    }
-    return bcrypt.hash(password, 12)
-      .then(hashPassword => {
-        const user = new User({
-          email: email,
-          password: hashPassword,
-          cart: { items: [] },
-        });
-        return user.save();
-      })
-      .then(result => {
-        return transporter.sendMail({
-          to: email,
-          from: 'nraj011994@outlook.com',
-          subject: 'Signup Successfully',
-          html: '<h1>You are Successfully signed up!</h1><br/><p>Your ID: '+email+'<br/> Your Password: '+password+'</p>'
+  if(password === confirmPassword){
+    User.findOne({ 'email': email }).then(userDoc => {
+      if (userDoc) {
+        req.flash('info','Email Exists');
+        return res.redirect('/signup');
+      }
+      return bcrypt.hash(password, 12)
+        .then(hashPassword => {
+          const user = new User({
+            email: email,
+            password: hashPassword,
+            cart: { items: [] },
+          });
+          return user.save();
         })
-      })
-      .then(result => {
-        req.flash('info','Registered Successfully');
-        return res.redirect('/login');
-      })
+        .then(result => {
+          return transporter.sendMail({
+            to: email,
+            from: 'nraj011994@outlook.com',
+            subject: 'Signup Successfully',
+            html: '<h1>You are Successfully signed up!</h1><br/><p>Your ID: '+email+'<br/> Your Password: '+password+'</p>'
+          })
+        })
+        .then(result => {
+          req.flash('info','Registered Successfully');
+          return res.redirect('/login');
+        })
+        .catch(err => {
+          console.log(err)
+        });
+    })
       .catch(err => {
         console.log(err)
       });
-  })
-    .catch(err => {
-      console.log(err)
-    });
-
+  }
+  req.flash('error','Password not matched');
+  res.redirect('/signup');
 };
 
 exports.postLogout = (req, res, next) => {
@@ -156,7 +159,7 @@ exports.postReset = (req,res,next) => {
         html: 
         `
         <p>You requested a password reset</p>
-        <p><a href="http://${host}/reset/${token}/${email}">Click me reset password</a><p>
+        <p><a href="http://${host}/reset/${token}/${email}">Click me to reset password</a><p>
         `
       })
     })
@@ -180,8 +183,45 @@ exports.getNewPassword= (req, res, next) => {
     }
     res.render('auth/new-password',{
       path: '/reset',
+      email: email,
+      token: token,
       pageTitle: 'Reset Password',
     });
   })
   .catch(err=> console.log(err))
+}
+exports.postNewPassword = (req, res, next) => {
+  const password = req.body.password;
+  const confirmPassword = req.body.confirmPassword;
+  const email = req.body.email;
+  if(password === confirmPassword){
+    User.findOne({email:email, resetTokenExpiry: {$gt: Date.now()}})
+    .then(user => {
+      return bcrypt.hash(password, 12)
+      .then(hashPassword => {
+        user.password = hashPassword,
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+        return user.save();
+      })
+      .then(result => {
+        return transporter.sendMail({
+          to: email,
+          from: 'nraj011994@outlook.com',
+          subject: 'Password Reset Successfully',
+          html: '<h1>You are Successfully Reset your password!</h1>',
+        })
+      })
+      .then(result => {
+        req.flash('info','Password Reset Successfull');
+        return res.redirect('/login');
+      })
+      .catch(err => {
+        console.log(err);
+      })
+    })
+    .catch(err => {
+      console.log(err)
+    })
+  }
 }
